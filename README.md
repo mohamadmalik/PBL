@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Meridian dashboard template
 
 A self-contained admin starter built on Stisla. Every page is plain HTML, CSS,
@@ -86,3 +87,8 @@ lacks its elements.
 The one piece you do not edit is `@stisla/vanilla`, the framework's behavior
 layer. It loads precompiled from the CDN. Treat it as a dependency you consume,
 the same as ApexCharts.
+=======
+Baca dulu 
+
+sementara baru dikerjain bagian index.php nya dulu sebagai dashboard
+>>>>>>> 95edd520495391a5b27550d2424a4db5446c5223
