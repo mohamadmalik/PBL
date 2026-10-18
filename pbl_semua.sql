@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 17 Okt 2026 pada 12.44
+-- Waktu pembuatan: 18 Okt 2026 pada 08.49
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -70,7 +70,7 @@ CREATE TABLE `users` (
   `nama` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','pemohon') DEFAULT 'pemohon',
+  `role` enum('admin','mahasiswa','dosen') NOT NULL DEFAULT 'mahasiswa',
   `nik` varchar(16) DEFAULT NULL,
   `file_ktp` varchar(255) DEFAULT NULL,
   `file_paspor` varchar(255) DEFAULT NULL,
@@ -78,6 +78,16 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data untuk tabel `users`
+--
+
+INSERT INTO `users` (`id`, `nama`, `email`, `password`, `role`, `nik`, `file_ktp`, `file_paspor`, `email_verified_at`, `created_at`, `updated_at`) VALUES
+(1, 'Admin KUI PNJ', 'admin@pnj.ac.id', '$2y$10$hlQTcdDvIgeF..lNrFhrm.XPXsNRSPpoFCxS29PGIdUzZnf6KF07q', 'admin', NULL, NULL, NULL, NULL, '2026-10-17 11:39:01', '2026-10-17 11:39:01'),
+(4, 'Admin', 'admin@admin.com', '$2y$10$AuxuDCocXP90cYxLyvnAfueWFfbnFx7As9F462R8uGjpFD74Ki8DO', 'admin', NULL, NULL, NULL, NULL, '2026-10-18 06:35:38', '2026-10-18 06:35:38'),
+(5, 'Mohamad Malik Fadillah Arwin', 'mohamad.malik.fadillah.arwin.tik25@stu.pnj.ac.id', '$2y$10$Ee3W1YnVOcSVgkP4t/G9zuSRhuLXZ6UhwPwpTU6jeIqFOny8TLCQi', 'mahasiswa', NULL, NULL, NULL, NULL, '2026-10-18 06:35:38', '2026-10-18 06:35:38'),
+(6, 'Budi Santoso', 'budi.santoso@tik.pnj.ac.id', '$2y$10$7NwrcwrZrC4CS/jrOj7zPOgBTrqGcUxZmKLWlWeU4mQpe5/Bt5bI.', 'dosen', NULL, NULL, NULL, NULL, '2026-10-18 06:35:38', '2026-10-18 06:35:38');
 
 --
 -- Indexes for dumped tables
@@ -124,7 +134,7 @@ ALTER TABLE `pengajuan_pdln`
 -- AUTO_INCREMENT untuk tabel `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
