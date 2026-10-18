@@ -26,6 +26,57 @@ require_once 'helpers.php';
 $nama    = ambilNama($user['email']);
 $role    = ucfirst(tentukanRole($user['email']) ?? 'user');
 $inisial = strtoupper(mb_substr($nama, 0, 2));
+
+$stmtNotif = $pdo->prepare("SELECT id, negara_tujuan, created_at FROM pengajuan_pdln WHERE user_id = :user_id and status = 'disetujui' ORDER BY created_at DESC LIMIT 5");
+$stmtNotif->execute([':user_id' => $_SESSION['user_id']]);
+$notifikasiPdln = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
+
+$tahunIni  = (int)date('Y');
+$tahunLalu = $tahunIni - 1;
+
+// Top 6 negara tahun ini + jumlah tahun lalu, dalam satu query
+$stmtTop = $pdo->prepare(
+    "SELECT negara_tujuan,
+            SUM(tahun_berangkat = :ini)  AS jumlah_ini,
+            SUM(tahun_berangkat = :lalu) AS jumlah_lalu
+     FROM users
+     WHERE negara_tujuan IS NOT NULL
+       AND status IN ('disetujui','selesai')
+       AND tahun_berangkat IN (:ini2, :lalu2)
+     GROUP BY negara_tujuan
+     HAVING jumlah_ini > 0
+     ORDER BY jumlah_ini DESC, negara_tujuan ASC
+     LIMIT 6"
+);
+$stmtTop->execute([
+    ':ini' => $tahunIni,  ':ini2' => $tahunIni,
+    ':lalu' => $tahunLalu, ':lalu2' => $tahunLalu,
+]);
+
+$klasemen = [];
+foreach ($stmtTop->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $ini  = (int)$row['jumlah_ini'];
+    $lalu = (int)$row['jumlah_lalu'];
+
+    if ($lalu > 0) {
+        $persen = round(($ini - $lalu) / $lalu * 100);
+        $naik   = $persen >= 0;
+        $label  = abs($persen) . '%';
+    } else {
+        $naik  = true;
+        $label = 'Baru'; // tahun lalu 0 -> persen tidak terdefinisi
+    }
+
+    $klasemen[] = [
+        'negara' => $row['negara_tujuan'],
+        'jumlah' => $ini,
+        'label'  => $label,
+        'warna'  => $naik ? 'var(--color-success)' : 'var(--color-danger)',
+        'panah'  => $naik ? 'M12 19V5m0 0l-6 6m6-6l6 6' : 'M12 5v14m0 0l-6-6m6 6l6-6',
+    ];
+}
+
+$warnaPeringkat = ['primary', 'info', 'warning', 'danger', 'success', 'primary'];
 ?>
 
 <!doctype html>
@@ -1137,325 +1188,61 @@ $inisial = strtoupper(mb_substr($nama, 0, 2));
                   <div class="col-span-12 xl:col-span-4">
                     <div class="card">
                       <div class="card__header">
-                        <span class="card__title">Top Customers</span>
+                        <span class="card__title">Top Negara yang Dikunjungi</span>
+                      </div>
+                      <div class="card__body">
+                        <span class="card__main" style="font-style: italic; font-size: 9px; color: grey; margin-top: -11px;">*Persentase berdasarkan jumlah pengajuan 2026 dibandingkan 2025</span>
                       </div>
 
+
+
+                      
+                      <!-- bagian sini udah gua bikin dul -->
                       <div class="media-list">
-                        <div class="media media--seamless">
-                          <span
-                            class="avatar"
-                            style="
-                              --avatar-bg: color-mix(
-                                in oklch,
-                                var(--color-primary) 16%,
-                                transparent
-                              );
-                              --avatar-color: var(--color-primary);
-                            "
-                          >
-                            <svg
-                              class="size-[1.4rem]"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              aria-hidden="true"
-                            >
-                              <circle cx="9" cy="12" r="6" opacity=".55" />
-                              <circle cx="15" cy="12" r="6" opacity=".55" />
-                            </svg>
-                          </span>
-                          <div class="media__content">
-                            <div class="media__title">Acme Corp</div>
-                            <div class="media__meta">18 orders</div>
-                          </div>
-                          <div class="text-end">
-                            <div class="font-semibold">$24,910</div>
-                            <span class="badge badge--soft badge--success text-xs">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <path
-                                    d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"
-                                  />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m7 14l2.293-2.293a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 0 1.414 0L17 10m0 0v2.5m0-2.5h-2.5"
-                                  />
-                                </g>
-                              </svg>
-                              12%
-                            </span>
-                          </div>
-                        </div>
+                        <?php if (empty($klasemen)): ?>
+  <div class="media media--seamless">
+    <div class="media__content">
+      <div class="media__meta">Belum ada data tahun <?= $tahunIni ?></div>
+    </div>
+  </div>
+<?php endif; ?>
 
-                        <div class="media media--seamless">
-                          <span
-                            class="avatar"
-                            style="
-                              --avatar-bg: color-mix(in oklch, var(--color-info) 16%, transparent);
-                              --avatar-color: var(--color-info);
-                            "
-                          >
-                            <svg
-                              class="size-[1.4rem]"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2.2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M4 9l8 5 8-5" />
-                              <path d="M4 14l8 5 8-5" />
-                            </svg>
-                          </span>
-                          <div class="media__content">
-                            <div class="media__title">Riverway Ltd</div>
-                            <div class="media__meta">11 orders</div>
-                          </div>
-                          <div class="text-end">
-                            <div class="font-semibold">$18,200</div>
-                            <span class="badge badge--soft badge--success text-xs">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <path
-                                    d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"
-                                  />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m7 14l2.293-2.293a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 0 1.414 0L17 10m0 0v2.5m0-2.5h-2.5"
-                                  />
-                                </g>
-                              </svg>
-                              6%
-                            </span>
-                          </div>
-                        </div>
+<?php foreach ($klasemen as $i => $k): $w = $warnaPeringkat[$i]; ?>
+  <div class="media media--seamless">
+    <span
+      class="avatar"
+      style="--avatar-bg: color-mix(in oklch, var(--color-<?= $w ?>) 16%, transparent); --avatar-color: var(--color-<?= $w ?>); font-weight: 600;"
+    >
+      <?= $i + 1 ?>
+    </span>
+    <div class="media__content">
+      <div class="media__title"><?= htmlspecialchars($k['negara']) ?></div>
+    </div>
+    <div class="text-end">
+      <div class="font-semibold"><?= $k['jumlah'] ?> anggota</div>
+      <div class="text-xs" style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: <?= $k['warna'] ?>;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="<?= $k['panah'] ?>"
+          />
+        </svg>
+        <span><?= $k['label'] ?></span>
+      </div>
+    </div>
+  </div>
+<?php endforeach; ?>
 
-                        <div class="media media--seamless">
-                          <span
-                            class="avatar"
-                            style="
-                              --avatar-bg: color-mix(
-                                in oklch,
-                                var(--color-warning) 16%,
-                                transparent
-                              );
-                              --avatar-color: var(--color-warning);
-                            "
-                          >
-                            <svg
-                              class="size-[1.4rem]"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              aria-hidden="true"
-                            >
-                              <path d="M12 2l2.3 7.4L22 12l-7.7 2.6L12 22l-2.3-7.4L2 12l7.7-2.6z" />
-                            </svg>
-                          </span>
-                          <div class="media__content">
-                            <div class="media__title">Northwind Traders</div>
-                            <div class="media__meta">9 orders</div>
-                          </div>
-                          <div class="text-end">
-                            <div class="font-semibold">$12,540</div>
-                            <span class="badge badge--soft badge--danger text-xs">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <path
-                                    d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"
-                                  />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m7 10l2.293 2.293a1 1 0 0 0 1.414 0l1.586-1.586a1 1 0 0 1 1.414 0L17 14m0 0v-2.5m0 2.5h-2.5"
-                                  />
-                                </g>
-                              </svg>
-                              3%
-                            </span>
-                          </div>
-                        </div>
+<!-- ampe sini-->
 
-                        <div class="media media--seamless">
-                          <span
-                            class="avatar"
-                            style="
-                              --avatar-bg: color-mix(
-                                in oklch,
-                                var(--color-danger) 16%,
-                                transparent
-                              );
-                              --avatar-color: var(--color-danger);
-                            "
-                          >
-                            <svg
-                              class="size-[1.4rem]"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M12 2.5l8.2 4.75v9.5L12 21.5 3.8 16.75v-9.5z" />
-                            </svg>
-                          </span>
-                          <div class="media__content">
-                            <div class="media__title">Globex</div>
-                            <div class="media__meta">7 orders</div>
-                          </div>
-                          <div class="text-end">
-                            <div class="font-semibold">$9,180</div>
-                            <span class="badge badge--soft badge--success text-xs">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <path
-                                    d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"
-                                  />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m7 14l2.293-2.293a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 0 1.414 0L17 10m0 0v2.5m0-2.5h-2.5"
-                                  />
-                                </g>
-                              </svg>
-                              8%
-                            </span>
-                          </div>
-                        </div>
 
-                        <div class="media media--seamless">
-                          <span
-                            class="avatar"
-                            style="
-                              --avatar-bg: color-mix(
-                                in oklch,
-                                var(--color-success) 16%,
-                                transparent
-                              );
-                              --avatar-color: var(--color-success);
-                            "
-                          >
-                            <svg
-                              class="size-[1.4rem]"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              aria-hidden="true"
-                            >
-                              <rect x="3" y="3" width="11" height="11" rx="2.5" opacity=".55" />
-                              <rect x="10" y="10" width="11" height="11" rx="2.5" />
-                            </svg>
-                          </span>
-                          <div class="media__content">
-                            <div class="media__title">Initech</div>
-                            <div class="media__meta">5 orders</div>
-                          </div>
-                          <div class="text-end">
-                            <div class="font-semibold">$6,420</div>
-                            <span class="badge badge--soft badge--danger text-xs">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <path
-                                    d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"
-                                  />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m7 10l2.293 2.293a1 1 0 0 0 1.414 0l1.586-1.586a1 1 0 0 1 1.414 0L17 14m0 0v-2.5m0 2.5h-2.5"
-                                  />
-                                </g>
-                              </svg>
-                              2%
-                            </span>
-                          </div>
-                        </div>
 
-                        <div class="media media--seamless">
-                          <span
-                            class="avatar"
-                            style="
-                              --avatar-bg: color-mix(
-                                in oklch,
-                                var(--color-primary) 16%,
-                                transparent
-                              );
-                              --avatar-color: var(--color-primary);
-                            "
-                          >
-                            <svg
-                              class="size-[1.4rem]"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              aria-hidden="true"
-                            >
-                              <circle cx="7" cy="7" r="3" />
-                              <circle cx="17" cy="7" r="3" opacity=".55" />
-                              <circle cx="7" cy="17" r="3" opacity=".55" />
-                              <circle cx="17" cy="17" r="3" />
-                            </svg>
-                          </span>
-                          <div class="media__content">
-                            <div class="media__title">Hooli</div>
-                            <div class="media__meta">4 orders</div>
-                          </div>
-                          <div class="text-end">
-                            <div class="font-semibold">$5,180</div>
-                            <span class="badge badge--soft badge--success text-xs">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <path
-                                    d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12Z"
-                                  />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m7 14l2.293-2.293a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 0 1.414 0L17 10m0 0v2.5m0-2.5h-2.5"
-                                  />
-                                </g>
-                              </svg>
-                              5%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+
+
                       <div class="card__footer">
                         <a href="#" class="button button--lg button--neutral button--block"
                           >View All</a
