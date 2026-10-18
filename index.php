@@ -1,94 +1,31 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['login'])) {
-    if (!headers_sent()) {
-        header("Location: login.php");
-    } else {
-        echo "<script>window.location.href='login.php';</script>";
-    }
+session_start();
+
+// Wajib login
+if (empty($_SESSION['logged_in'])) {
+    header("Location: login.php");
     exit;
 }
-if (!headers_sent()) {
-    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-    header("Pragma: no-cache");
+
+// Koneksi database
+$pdo = new PDO("mysql:host=localhost;dbname=pbl semua;charset=utf8", 'root', '');
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Ambil data user yang sedang login
+$stmt = $pdo->prepare("SELECT nama, email, role FROM users WHERE id = :id LIMIT 1");
+$stmt->execute([':id' => $_SESSION['user_id']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user) {
+    session_destroy();
+    header("Location: login.php");
+    exit;
 }
 
-$username = "root";
-$password = "";
-
-$database = "pbl semua";
-$host = "localhost";
-
-$servername = "localhost";
-$mysqli = new mysqli($servername, $username, $password, $database);
-
-if($mysqli->connect_error) {
-    die("Koneksi Gagal: ". $mysqli->connect_error);
-}
-
-$accountTypeResult = $mysqli->query("SELECT id, name FROM users ORDER BY name");
-$accountTypes = $accountTypeResult ? $accountTypeResult->fetch_all(MYSQLI_ASSOC) : [];
-
-if(isset($_POST['send'])) {
-    $name = $_POST['userName'];
-    $Username = $_POST['Username'];
-    $email = $_POST['userEmail'];
-    $password = $_POST['subject'];
-    $identification_number = $_POST['identification_number'];
-    $identification_type = $_POST['identification_type'];
-    $account_type_id = $_POST['account_type'];
-    $status = $_POST['status'];
-
-    $accountTypeIds = array_column($accountTypes, 'id');
-    if (!in_array($account_type_id, $accountTypeIds, true)) {
-        echo "<script>alert('Tipe akun tidak valid. Silakan pilih tipe akun yang tersedia.');</script>";
-    } else {
-        $stmt = $mysqli->prepare("insert into accounts (id,name, email, Username, password, account_type_id, identification_number, identification_type, status) values (UUID(),?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssssss", $name, $email, $Username, $password, $account_type_id, $identification_number, $identification_type, $status);
-
-        if($stmt->execute()) {
-            echo "<script> alert('Data Berhasil Ditambahkan!'); window.location.href=window.location.pathname;</script>";
-        } else {
-            echo "<script> alert('Gagal Menambahkan Data: ".$stmt->error . "');</script>";
-        }
-        $stmt->close();
-    }
-}
-
-if(isset($_POST['update'])) {
-    $id = $_POST['id'] ?? '';
-    $name = trim($_POST['userName'] ?? '');
-    $Username = trim($_POST['Username']??'');
-    $email = trim($_POST['userEmail'] ?? '');
-    $password = $_POST['subject'] ?? '';
-    $identification_number = trim($_POST['identification_number'] ?? '');
-    $identification_type = $_POST['identification_type'] ?? '';
-    $account_type_id = $_POST['account_type'] ?? '';
-    $status = $_POST['status'] ?? '';
-
-    $accountTypeIds = array_column($accountTypes, 'id');
-    if (!in_array($account_type_id, $accountTypeIds, true)) {
-        echo "<script>alert('Tipe akun tidak valid. Silakan pilih tipe akun yang tersedia.');</script>";
-    } else {
-        if ($password !== '') {
-            $stmt = $mysqli->prepare("UPDATE accounts SET name = ?, Username = ?, email = ?, password = ?, account_type_id = ?, identification_number = ?, identification_type = ?, status = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->bind_param("sssssssss", $name, $Username, $email, $password, $account_type_id, $identification_number, $identification_type, $status, $id);
-        } else {
-            $stmt = $mysqli->prepare("UPDATE accounts SET name = ?, Username = ?, email = ?, account_type_id = ?, identification_number = ?, identification_type = ?, status = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->bind_param("ssssssss", $name, $Username, $email, $account_type_id, $identification_number, $identification_type, $status, $id);
-        }
-
-        if($stmt->execute()) {
-            echo "<script> alert('Data Berhasil Diperbarui!'); window.location.href=window.location.href;</script>";
-        } else {
-            echo "<script> alert('Gagal Memperbarui Data: ".$stmt->error . "');</script>";
-        }
-        $stmt->close();
-    }
-}
-
+require_once 'helpers.php';
+$nama    = ambilNama($user['email']);
+$role    = ucfirst(tentukanRole($user['email']) ?? 'user');
+$inisial = strtoupper(mb_substr($nama, 0, 2));
 ?>
 
 <!doctype html>
@@ -889,14 +826,14 @@ if(isset($_POST['update'])) {
                   aria-expanded="false"
                   aria-controls="topbarUser"
                 >
-                  <span class="hidden sm:inline font-medium">Steven Gerrard</span>
+                  <span class="hidden sm:inline font-medium"><?= htmlspecialchars($nama) ?></span>
                   <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
                     <img
                       class="avatar__image"
                       src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&facepad=2.5&w=80&h=80&q=80"
                       alt=""
                     />
-                    <span class="avatar__fallback">SG</span>
+                    <span class="avatar__fallback"><?= htmlspecialchars($inisial) ?></span>
                   </span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -923,7 +860,7 @@ if(isset($_POST['update'])) {
                   data-state="closed"
                 >
                   <div class="menu__group" role="group" aria-labelledby="topbarUserHead">
-                    <h3 class="menu__group-label" id="topbarUserHead">Mateo Alvarez</h3>
+                    <h3 class="menu__group-label" id="topbarUserHead"><?= htmlspecialchars($nama) ?> · <?= htmlspecialchars($role) ?></h3>
                     <a href="/meridian/settings.html" class="menu__item" role="menuitem"
                       ><svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -988,7 +925,7 @@ if(isset($_POST['update'])) {
         <div class="page content">
           <div class="content__container">
             <header class="page__header">
-              <h1 class="page__title">Welcome back, <span>Steven</span> 👋</h1>
+              <h1 class="page__title">Welcome back, <span><?= htmlspecialchars($nama) ?></span> 👋</h1>
             </header>
             <div class="page__body">
               <section class="page__section">
