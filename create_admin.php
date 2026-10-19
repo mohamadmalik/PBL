@@ -1,75 +1,81 @@
 <?php
-require_once 'helpers.php';
-
 $pdo = new PDO("mysql:host=localhost;dbname=pbl semua;charset=utf8", 'root', '');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$password = 'admin123'; // ganti sesuai kebutuhan
-$statusDefault = 'selesai';
-
-// email => [negara_tujuan, status]  (status null = pakai default)
-$emails = [
-    'admin@admin.com'                                   => [null, null, null],
-    'mohamad.malik.fadillah.arwin.tik25@stu.pnj.ac.id'  => ['Jepang', 'ditolak', 2026],
-    'kesya.rizqia.anak.pnj.tik25@stu.pnj.ac.id'         => ['Singapura', 'pending', 2025],
-    'rizqa.cahya.tik25@stu.pnj.ac.id'                   => ['Singapura', 'disetujui', 2026],
-    'naveta.chandra.choirullah.tik25@stu.pnj.ac.id'     => ['Singapura', null, 2026],
-    'adelia.putri.tik25@stu.pnj.ac.id'      => ['Jepang', 'disetujui', 2025],
-    'ahmad.fauzi.tik25@stu.pnj.ac.id'       => ['Singapura', null, 2026],
-    'aisyah.nurul.tik25@stu.pnj.ac.id'      => ['Malaysia', 'ditolak', 2025],
-    'alvin.pratama.tik25@stu.pnj.ac.id'     => ['Korea Selatan', null, 2026],
-    'amanda.sekar.tik25@stu.pnj.ac.id'      => ['Jerman', null, 2025],
-    'andika.wijaya.tik25@stu.pnj.ac.id'     => ['Australia', null, 2026],
-    'annisa.rahma.tik25@stu.pnj.ac.id'      => ['Inggris', null, 2026],
-    'arya.kusuma.tik25@stu.pnj.ac.id'       => ['Jepang', 'ditolak', 2025],
-    'azzahra.siti.tik25@stu.pnj.ac.id'      => ['Belanda', null, 2026],
-    'bagas.satria.tik25@stu.pnj.ac.id'      => ['Singapura', null, 2025],
-    'bayu.pamungkas.tik25@stu.pnj.ac.id'   => ['Thailand', null, 2026],
-    'citra.lestari.tik25@stu.pnj.ac.id'     => ['Malaysia', null, 2025],
-    'daniel.sitorus.tik25@stu.pnj.ac.id'    => ['Jerman', null, 2026],
-    'dion.yudha.tik25@stu.pnj.ac.id'        => ['Jepang', null, 2026],
-    'farhan.kurnia.tik25@stu.pnj.ac.id'     => ['Korea Selatan', 'ditolak', 2025],
-    'fiona.angelica.tik25@stu.pnj.ac.id'   => ['Taiwan', null, 2026],
-    'gilang.ramadhan.tik25@stu.pnj.ac.id'  => ['Australia', null, 2025],
-    'hanifah.salsa.tik25@stu.pnj.ac.id'     => ['Singapura', null, 2026],
-    'ikbal.maulana.tik25@stu.pnj.ac.id'     => ['Jepang', null, 2025],
-    'indra.laksana.tik25@stu.pnj.ac.id'     => ['Belanda', 'ditolak', 2026],
-    'kevin.sanjaya.tik25@stu.pnj.ac.id'    => ['Malaysia', 'disetujui', 2025],
-    'lutfi.hakim.tik25@stu.pnj.ac.id'       => ['Korea Selatan', 'menunggu', 2026],
-    'muhammad.rizky.tik25@stu.pnj.ac.id'    => ['Jepang', 'disetujui', 2026],
-    'nadia.utami.tik25@stu.pnj.ac.id'       => ['Singapura', 'ditolak', 2025],
-    'naufal.hidayat.tik25@stu.pnj.ac.id'    => ['Jerman', 'menunggu', 2026],
-    'putri.syifa.tik25@stu.pnj.ac.id'       => ['Inggris', 'disetujui', 2025],
-    'raditya.pradipta.tik25@stu.pnj.ac.id'  => ['Australia', null, 2026],
-    'rafi.akbar.tik25@stu.pnj.ac.id'        => ['Thailand', 'disetujui', 2025],
-    'salsa.bila.tik25@stu.pnj.ac.id'        => ['Vietnam', 'menunggu', 2026],
-    'tariq.ziyad.tik25@stu.pnj.ac.id'       => ['Jepang', 'disetujui', 2026],
-    // ...sisanya sama polanya
-];
-
-$stmt = $pdo->prepare(
-    "INSERT INTO users (nama, email, password, role, negara_tujuan, tahun_berangkat, status)
-     VALUES (:nama, :email, :password, :role, :negara, :tahun, :status)
-     ON DUPLICATE KEY UPDATE nama = VALUES(nama), password = VALUES(password), role = VALUES(role),
-                             negara_tujuan = VALUES(negara_tujuan), tahun_berangkat = VALUES(tahun_berangkat),
-                             status = VALUES(status)"
+// ---------- Skema tambahan (aman dijalankan berulang) ----------
+$pdo->exec("ALTER TABLE pengajuan_pdln ADD COLUMN IF NOT EXISTS nama_tim VARCHAR(100) NULL AFTER tujuan_kegiatan");
+$pdo->exec(
+    "CREATE TABLE IF NOT EXISTS pengajuan_anggota (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        pengajuan_id BIGINT UNSIGNED NOT NULL,
+        user_id BIGINT UNSIGNED NOT NULL,
+        UNIQUE KEY uniq_anggota (pengajuan_id, user_id),
+        FOREIGN KEY (pengajuan_id) REFERENCES pengajuan_pdln(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
 
-foreach ($emails as $email => [$negara, $status, $tahun]) {
-    $role = tentukanRole($email);
-    if ($role === null) {
-        echo "SKIP (domain tidak diizinkan): $email\n";
+// Bersihkan data pengajuan lama supaya seeding bisa diulang
+$pdo->exec("DELETE FROM pengajuan_anggota");
+$pdo->exec("DELETE FROM pengajuan_pdln");
+
+// Singkatan: 'rizqa.cahya' -> 'rizqa.cahya.tik25@stu.pnj.ac.id'
+function mhs($nama) { return "$nama.tik25@stu.pnj.ac.id"; }
+
+// [negara, tujuan kegiatan, tanggal mulai, tanggal selesai, status, nama tim, anggota]
+// Anggota pertama = ketua (disimpan di kolom user_id pengajuan_pdln)
+$pengajuan = [
+    ['Belanda',       'Workshop UI/UX Internasional',      '2026-09-05', '2026-09-10', 'selesai',            'Tim Desain Amsterdam', [mhs('azzahra.siti'), mhs('indra.laksana')]],
+    ['Korea Selatan', 'Lomba Robotik Internasional',       '2026-08-15', '2026-08-20', 'selesai',            'Tim Robotik Seoul',    [mhs('alvin.pratama'), mhs('farhan.kurnia'), mhs('lutfi.hakim')]],
+    ['Australia',     'Studi Banding Software Engineering','2026-07-08', '2026-07-14', 'selesai',            'Tim Aussie Dev',       [mhs('andika.wijaya'), mhs('raditya.pradipta')]],
+    ['Jerman',        'Konferensi Machine Learning',       '2026-06-20', '2026-06-27', 'selesai',            'Tim AI Berlin',        [mhs('daniel.sitorus'), mhs('amanda.sekar'), mhs('naufal.hidayat')]],
+    ['Jepang',        'Pertukaran Pelajar Teknologi',      '2026-05-02', '2026-05-12', 'selesai',            'Tim Sakura',           [mhs('muhammad.rizky'), mhs('dion.yudha'), mhs('tariq.ziyad')]],
+    ['Singapura',     'Kompetisi Cybersecurity',           '2026-03-10', '2026-03-15', 'selesai',            'Tim Cyber PNJ',        [mhs('rizqa.cahya'), mhs('naveta.chandra.choirullah'), mhs('ahmad.fauzi'), mhs('hanifah.salsa')]],
+    ['Malaysia',      'Hackathon Regional',                '2025-11-04', '2025-11-07', 'selesai',            'Tim Hack KL',          [mhs('kevin.sanjaya'), mhs('citra.lestari'), mhs('aisyah.nurul')]],
+    ['Inggris',       'Seminar Data Science',              '2026-12-12', '2026-12-18', 'pending',            'Tim Data London',      [mhs('annisa.rahma'), mhs('putri.syifa')]],
+    ['Thailand',      'Lomba Internet of Things',          '2027-01-12', '2027-01-16', 'verifikasi_dokumen', 'Tim IoT Bangkok',      [mhs('bayu.pamungkas'), mhs('rafi.akbar')]],
+];
+
+$cariUser = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+$insPengajuan = $pdo->prepare(
+    "INSERT INTO pengajuan_pdln (user_id, negara_tujuan, tujuan_kegiatan, nama_tim, tanggal_mulai, tanggal_selesai, status)
+     VALUES (:user_id, :negara, :tujuan, :tim, :mulai, :selesai, :status)"
+);
+$insAnggota = $pdo->prepare("INSERT IGNORE INTO pengajuan_anggota (pengajuan_id, user_id) VALUES (:pid, :uid)");
+
+foreach ($pengajuan as [$negara, $tujuan, $mulai, $selesai, $status, $tim, $anggota]) {
+    // Ambil id user tiap anggota (user harus sudah di-seed lewat create_akun.php)
+    $ids = [];
+    foreach ($anggota as $email) {
+        $cariUser->execute([':email' => $email]);
+        $id = $cariUser->fetchColumn();
+        if ($id === false) {
+            echo "  SKIP anggota (user belum ada): $email\n";
+            continue;
+        }
+        $ids[] = (int)$id;
+    }
+    if (empty($ids)) {
+        echo "SKIP pengajuan $negara: tidak ada anggota valid\n";
         continue;
     }
-    $status = $status ?? $statusDefault;
-    $stmt->execute([
-        ':nama'     => ambilNamaLengkap($email),
-        ':email'    => $email,
-        ':password' => password_hash($password, PASSWORD_DEFAULT),
-        ':role'     => $role,
-        ':negara'   => $negara,
-        ':tahun'    => $tahun,
-        ':status'   => $status,
-    ]);
-    echo "OK: $email ($role, " . ($negara ?? '-') . ", " . ($tahun ?? '-') . ", $status)\n";
+
+    try {
+        $insPengajuan->execute([
+            ':user_id' => $ids[0],
+            ':negara'  => $negara,
+            ':tujuan'  => $tujuan,
+            ':tim'     => $tim,
+            ':mulai'   => $mulai,
+            ':selesai' => $selesai,
+            ':status'  => $status,
+        ]);
+        $pid = (int)$pdo->lastInsertId();
+        foreach ($ids as $uid) {
+            $insAnggota->execute([':pid' => $pid, ':uid' => $uid]);
+        }
+        echo "OK: #$pid $negara ($status, $tim, " . count($ids) . " anggota)\n";
+    } catch (PDOException $e) {
+        echo "GAGAL: $negara -> " . $e->getMessage() . "\n";
+    }
 }

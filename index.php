@@ -77,6 +77,20 @@ foreach ($stmtTop->fetchAll(PDO::FETCH_ASSOC) as $row) {
 }
 
 $warnaPeringkat = ['primary', 'info', 'warning', 'danger', 'success', 'primary'];
+
+// Pengajuan berstatus selesai + jumlah anggota + nama tim (tabel Recent Country Visit)
+$stmtSelesai = $pdo->prepare(
+    "SELECT p.id, p.negara_tujuan, p.tanggal_mulai, p.tanggal_selesai, p.nama_tim,
+            COUNT(a.user_id) AS jumlah_anggota
+     FROM pengajuan_pdln p
+     LEFT JOIN pengajuan_anggota a ON a.pengajuan_id = p.id
+     WHERE p.status = :status
+     GROUP BY p.id, p.negara_tujuan, p.tanggal_mulai, p.tanggal_selesai, p.nama_tim
+     ORDER BY p.tanggal_mulai DESC
+     LIMIT 5"
+);
+$stmtSelesai->execute([':status' => 'selesai']);
+$pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!doctype html>
@@ -125,7 +139,7 @@ $warnaPeringkat = ['primary', 'info', 'warning', 'danger', 'success', 'primary']
               />
               <path d="M12 1.5l3.4 7.1L12 12 8.6 8.6z" />
             </svg>
-            <span>Meridian</span>
+            <span>STIO PNJ</span>
           </a>
         </header>
 
@@ -1194,55 +1208,45 @@ $warnaPeringkat = ['primary', 'info', 'warning', 'danger', 'success', 'primary']
                         <span class="card__main" style="font-style: italic; font-size: 9px; color: grey; margin-top: -11px;">*Persentase berdasarkan jumlah pengajuan 2026 dibandingkan 2025</span>
                       </div>
 
-
-
-                      
-                      <!-- bagian sini udah gua bikin dul -->
                       <div class="media-list">
                         <?php if (empty($klasemen)): ?>
-  <div class="media media--seamless">
-    <div class="media__content">
-      <div class="media__meta">Belum ada data tahun <?= $tahunIni ?></div>
-    </div>
-  </div>
-<?php endif; ?>
+                          <div class="media media--seamless">
+                            <div class="media__content">
+                              <div class="media__meta">Belum ada data tahun <?= $tahunIni ?></div>
+                            </div>
+                          </div>
+                        <?php endif; ?>
 
-<?php foreach ($klasemen as $i => $k): $w = $warnaPeringkat[$i]; ?>
-  <div class="media media--seamless">
-    <span
-      class="avatar"
-      style="--avatar-bg: color-mix(in oklch, var(--color-<?= $w ?>) 16%, transparent); --avatar-color: var(--color-<?= $w ?>); font-weight: 600;"
-    >
-      <?= $i + 1 ?>
-    </span>
-    <div class="media__content">
-      <div class="media__title"><?= htmlspecialchars($k['negara']) ?></div>
-    </div>
-    <div class="text-end">
-      <div class="font-semibold"><?= $k['jumlah'] ?> anggota</div>
-      <div class="text-xs" style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: <?= $k['warna'] ?>;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="<?= $k['panah'] ?>"
-          />
-        </svg>
-        <span><?= $k['label'] ?></span>
-      </div>
-    </div>
-  </div>
-<?php endforeach; ?>
-
-<!-- ampe sini-->
-
-
-
-
-
+                        <?php foreach ($klasemen as $i => $k): $w = $warnaPeringkat[$i]; ?>
+                          <div class="media media--seamless">
+                            <span
+                              class="avatar"
+                              style="--avatar-bg: color-mix(in oklch, var(--color-<?= $w ?>) 16%, transparent); --avatar-color: var(--color-<?= $w ?>); font-weight: 600;"
+                            >
+                              <?= $i + 1 ?>
+                            </span>
+                            <div class="media__content">
+                              <div class="media__title"><?= htmlspecialchars($k['negara']) ?></div>
+                            </div>
+                            <div class="text-end">
+                              <div class="font-semibold"><?= $k['jumlah'] ?> anggota</div>
+                              <div class="text-xs" style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: <?= $k['warna'] ?>;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="<?= $k['panah'] ?>"
+                                  />
+                                </svg>
+                                <span><?= $k['label'] ?></span>
+                              </div>
+                            </div>
+                          </div>
+                        <?php endforeach; ?>
+                      </div>
                       <div class="card__footer">
                         <a href="#" class="button button--lg button--neutral button--block"
                           >View All</a
@@ -1434,7 +1438,7 @@ $warnaPeringkat = ['primary', 'info', 'warning', 'danger', 'success', 'primary']
               <section class="page__section">
                 <div class="card">
                   <div class="card__header">
-                    <span class="card__title">Recent Orders</span>
+                    <span class="card__title">Recent Country Visit</span>
                     <a
                       href="/meridian/orders.html"
                       class="ms-auto button button--neutral button--ghost button--sm"
@@ -1446,255 +1450,36 @@ $warnaPeringkat = ['primary', 'info', 'warning', 'danger', 'success', 'primary']
                     <table class="table table--hover table--align-middle">
                       <thead class="table__head--alt">
                         <tr>
-                          <th scope="col">Order</th>
-                          <th scope="col">Customer</th>
+                          <th scope="col">ID</th>
+                          <th scope="col">Negara</th>
                           <th scope="col">Date</th>
-                          <th scope="col" class="text-end">Items</th>
-                          <th scope="col">Status</th>
-                          <th scope="col" class="text-end">Total</th>
+                          <th scope="col">Anggota</th>
+                          <th scope="col">Tim</th>
                         </tr>
                       </thead>
                       <tbody>
+                        <?php if (empty($pengajuanSelesai)): ?>
+                        <tr>
+                          <td colspan="5" class="text-muted-foreground">Belum ada pengajuan yang selesai.</td>
+                        </tr>
+                        <?php endif; ?>
+                        <?php foreach ($pengajuanSelesai as $p): ?>
                         <tr>
                           <th scope="row">
-                            <a href="/meridian/order-detail.html" class="link"
-                              ><code>#10428</code></a
+                            <a href="/meridian/order-detail.html?id=<?= (int)$p['id'] ?>" class="link"
+                              ><code>#<?= (int)$p['id'] ?></code></a
                             >
                           </th>
                           <td>
-                            <div class="flex items-center gap-3">
-                              <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                                <img
-                                  class="avatar__image"
-                                  src="https://i.pravatar.cc/64?img=12"
-                                  alt=""
-                                />
-                                <span class="avatar__fallback">AC</span>
-                              </span>
-                              <div>
-                                <div class="font-medium">Acme Corp</div>
-                                <div class="text-xs text-muted-foreground">billing@acme.co</div>
-                              </div>
-                            </div>
+                            <div class="font-medium"><?= htmlspecialchars($p['negara_tujuan']) ?></div>
                           </td>
-                          <td>Jun 18</td>
-                          <td class="text-end">6</td>
+                          <td><?= date('d M', strtotime($p['tanggal_mulai'])) ?> – <?= date('d M Y', strtotime($p['tanggal_selesai'])) ?></td>
+                          <td><?= (int)$p['jumlah_anggota'] ?> orang</td>
                           <td>
-                            <span class="badge badge--soft badge--warning"
-                              ><svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <circle cx="12" cy="12" r="10" />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M12 8v4l2.5 2.5"
-                                  />
-                                </g>
-                              </svg>
-                              Pending</span
-                            >
+                            <span class="badge badge--soft badge--info"><?= htmlspecialchars($p['nama_tim'] ?? '-') ?></span>
                           </td>
-                          <td class="text-end"><span class="font-semibold">$1,490.00</span></td>
                         </tr>
-
-                        <tr>
-                          <th scope="row">
-                            <a href="/meridian/order-detail.html" class="link"
-                              ><code>#10427</code></a
-                            >
-                          </th>
-                          <td>
-                            <div class="flex items-center gap-3">
-                              <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                                <img
-                                  class="avatar__image"
-                                  src="https://i.pravatar.cc/64?img=32"
-                                  alt=""
-                                />
-                                <span class="avatar__fallback">RL</span>
-                              </span>
-                              <div>
-                                <div class="font-medium">Riverway Ltd</div>
-                                <div class="text-xs text-muted-foreground">ap@riverway.io</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>Jun 17</td>
-                          <td class="text-end">2</td>
-                          <td>
-                            <span class="badge badge--soft badge--info"
-                              ><svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none">
-                                  <path
-                                    fill="currentColor"
-                                    d="M7.506 15.265a.75.75 0 0 0 1.446-.4zm-1.43-7.99l.724-.2zM4.705 5.92l-.2.723zM3.2 4.725a.75.75 0 1 0-.402 1.445zm16.988 11a.75.75 0 1 0-.378-1.451zm-9.991 1.834c.31 1.12-.37 2.303-1.574 2.616L9 21.626c1.977-.513 3.185-2.502 2.643-4.467zm-1.574 2.616c-1.212.315-2.428-.389-2.74-1.519l-1.446.4c.54 1.955 2.594 3.082 4.563 2.57zm-2.74-1.519c-.31-1.12.37-2.303 1.574-2.616l-.377-1.45c-1.977.513-3.186 2.502-2.643 4.467zm1.574-2.616c1.212-.315 2.428.389 2.74 1.519l1.446-.4c-.54-1.955-2.594-3.082-4.563-2.57zm1.494-1.175L6.8 7.075l-1.446.4l2.152 7.79zM4.904 5.197l-1.703-.472l-.402 1.445l1.704.473zM6.8 7.075a2.71 2.71 0 0 0-1.896-1.878l-.4 1.446c.425.118.742.44.85.831zm4.31 11.01l9.079-2.36l-.378-1.451l-9.079 2.36z"
-                                  />
-                                  <path
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    d="M9.565 8.73c-.485-1.755-.727-2.633-.315-3.324c.411-.692 1.316-.927 3.126-1.398l1.92-.498c1.81-.47 2.715-.706 3.428-.307c.713.4.956 1.277 1.44 3.033l.515 1.862c.485 1.755.728 2.633.316 3.325c-.412.691-1.317.927-3.127 1.397l-1.92.499c-1.81.47-2.715.705-3.428.306c-.713-.4-.955-1.277-1.44-3.032z"
-                                  />
-                                </g>
-                              </svg>
-                              Shipped</span
-                            >
-                          </td>
-                          <td class="text-end"><span class="font-semibold">$580.00</span></td>
-                        </tr>
-
-                        <tr>
-                          <th scope="row">
-                            <a href="/meridian/order-detail.html" class="link"
-                              ><code>#10426</code></a
-                            >
-                          </th>
-                          <td>
-                            <div class="flex items-center gap-3">
-                              <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                                <img
-                                  class="avatar__image"
-                                  src="https://i.pravatar.cc/64?img=48"
-                                  alt=""
-                                />
-                                <span class="avatar__fallback">NT</span>
-                              </span>
-                              <div>
-                                <div class="font-medium">Northwind Traders</div>
-                                <div class="text-xs text-muted-foreground">
-                                  orders@northwind.com
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>Jun 17</td>
-                          <td class="text-end">18</td>
-                          <td>
-                            <span class="badge badge--soft badge--success"
-                              ><svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <circle cx="12" cy="12" r="10" />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m8.5 12.5l2 2l5-5"
-                                  />
-                                </g>
-                              </svg>
-                              Completed</span
-                            >
-                          </td>
-                          <td class="text-end"><span class="font-semibold">$8,200.00</span></td>
-                        </tr>
-
-                        <tr>
-                          <th scope="row">
-                            <a href="/meridian/order-detail.html" class="link"
-                              ><code>#10425</code></a
-                            >
-                          </th>
-                          <td>
-                            <div class="flex items-center gap-3">
-                              <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                                <img
-                                  class="avatar__image"
-                                  src="https://i.pravatar.cc/64?img=15"
-                                  alt=""
-                                />
-                                <span class="avatar__fallback">GX</span>
-                              </span>
-                              <div>
-                                <div class="font-medium">Globex</div>
-                                <div class="text-xs text-muted-foreground">buy@globex.com</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>Jun 16</td>
-                          <td class="text-end">1</td>
-                          <td>
-                            <span class="badge badge--soft badge--danger"
-                              ><svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  fill="currentColor"
-                                  d="M3.68 11.333h-.75zm0 1.667l-.528.532a.75.75 0 0 0 1.056 0zm2.208-1.134A.75.75 0 1 0 4.83 10.8zM2.528 10.8a.75.75 0 0 0-1.056 1.065zm16.088-3.408a.75.75 0 1 0 1.277-.786zM12.079 2.25c-5.047 0-9.15 4.061-9.15 9.083h1.5c0-4.182 3.42-7.583 7.65-7.583zm-9.15 9.083V13h1.5v-1.667zm1.28 2.2l1.679-1.667L4.83 10.8l-1.68 1.667zm0-1.065L2.528 10.8l-1.057 1.065l1.68 1.666zm15.684-5.86A9.16 9.16 0 0 0 12.08 2.25v1.5a7.66 7.66 0 0 1 6.537 3.643zM20.314 11l.527-.533a.75.75 0 0 0-1.054 0zM18.1 12.133a.75.75 0 0 0 1.055 1.067zm3.373 1.067a.75.75 0 1 0 1.054-1.067zM5.318 16.606a.75.75 0 1 0-1.277.788zm6.565 5.144c5.062 0 9.18-4.058 9.18-9.083h-1.5c0 4.18-3.43 7.583-7.68 7.583zm9.18-9.083V11h-1.5v1.667zm-1.276-2.2L18.1 12.133l1.055 1.067l1.686-1.667zm0 1.066l1.686 1.667l1.054-1.067l-1.686-1.666zM4.04 17.393a9.2 9.2 0 0 0 7.842 4.357v-1.5a7.7 7.7 0 0 1-6.565-3.644z"
-                                />
-                              </svg>
-                              Refunded</span
-                            >
-                          </td>
-                          <td class="text-end"><span class="font-semibold">$240.00</span></td>
-                        </tr>
-
-                        <tr>
-                          <th scope="row">
-                            <a href="/meridian/order-detail.html" class="link"
-                              ><code>#10424</code></a
-                            >
-                          </th>
-                          <td>
-                            <div class="flex items-center gap-3">
-                              <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                                <img
-                                  class="avatar__image"
-                                  src="https://i.pravatar.cc/64?img=5"
-                                  alt=""
-                                />
-                                <span class="avatar__fallback">IN</span>
-                              </span>
-                              <div>
-                                <div class="font-medium">Initech</div>
-                                <div class="text-xs text-muted-foreground">po@initech.com</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>Jun 15</td>
-                          <td class="text-end">4</td>
-                          <td>
-                            <span class="badge badge--soft badge--success"
-                              ><svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="1em"
-                                height="1em"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                              >
-                                <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                  <circle cx="12" cy="12" r="10" />
-                                  <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m8.5 12.5l2 2l5-5"
-                                  />
-                                </g>
-                              </svg>
-                              Completed</span
-                            >
-                          </td>
-                          <td class="text-end"><span class="font-semibold">$1,120.00</span></td>
-                        </tr>
+                        <?php endforeach; ?>
                       </tbody>
                     </table>
                   </div>
