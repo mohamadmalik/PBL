@@ -123,13 +123,15 @@ $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
   <body>
 
       <main class="app-shell__main">
-        <header class="navbar" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-
-          <!-- Spacer kiri (biar menu benar-benar di tengah) -->
+        <header class="navbar" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:62px;">
+          <img src="assets/Logo PNJ.png" alt="Logo PNJ">
+        <div style="margin-left: 80px;">STIO PNJ</div>
+          
           <div style="flex:1;"></div>
-
-          <!-- Menu tengah -->
+        
+          
           <nav class="flex gap-1" style="flex:0 0 auto;">
+            
             <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Input Pengajuan</a>
             <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Inbound</a>
             <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Outbound</a>
@@ -139,10 +141,10 @@ $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
             <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Panduan</a>
           </nav>
 
-          <!-- Kanan: notif, dark mode, profil -->
+         
           <div class="flex gap-1 items-center" style="flex:1; justify-content:flex-end;">
 
-            <!-- Notifikasi -->
+           
             <div class="relative">
               <button
                 type="button"
