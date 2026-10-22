@@ -91,6 +91,19 @@ $stmtSelesai = $pdo->prepare(
 );
 $stmtSelesai->execute([':status' => 'selesai']);
 $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
+
+// Menu navbar (ubah href sesuai nama file halamanmu)
+$menuNav = [
+    ['label' => 'Dashboard',       'href' => 'dashboard.php'],
+    ['label' => 'Input Pengajuan', 'href' => '#'],
+    ['label' => 'Inbound',         'href' => '#'],
+    ['label' => 'Outbound',        'href' => '#'],
+    ['label' => 'Cek Progress',    'href' => '#'],
+    ['label' => 'Upload Laporan',  'href' => '#'],
+    ['label' => 'Template',        'href' => '#'],
+    ['label' => 'Panduan',         'href' => '#'],
+];
+$halamanSekarang = basename($_SERVER['PHP_SELF']);
 ?>
 
 <!doctype html>
@@ -119,32 +132,108 @@ $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
     <title>Dashboard · Meridian</title>
 
     <link rel="stylesheet" href="assets/css/style.css" />
+
+    <style>
+              /* Ukuran font menu */
+        .topbar__nav .button {
+          font-size: 11px;      /* ubah sesuai selera */
+          font-weight: 1000;
+        }
+
+        /* Warna saat hover */
+        .topbar__nav .button:hover {
+          background: #009688;  /* warna latar */
+          color: #FFFFFF;       /* warna teks */
+        }
+
+        /* Warna menu aktif (halaman yang sedang dibuka) */
+        .topbar__nav .button[aria-current="page"] {
+          background: #0369a1;
+          color: #fff;
+        }
+      /* ===== Navbar ===== */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        width: 100%;
+        height: 62px;
+        padding: 0 20px;
+        background: var(--color-background, var(--color-surface, #fff));
+        border-bottom: 1px solid var(--color-border, rgba(128, 128, 128, 0.2));
+      }
+      .topbar__brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+        text-decoration: none;
+        color: inherit;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .topbar__brand img {
+        height: 36px;
+        width: auto;
+        display: block;
+      }
+      .topbar__nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex: 1 1 auto;
+        min-width: 0;
+        justify-content: center;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .topbar__nav::-webkit-scrollbar { display: none; }
+      .topbar__nav .button[aria-current="page"] {
+        font-weight: 600;
+        background: color-mix(in oklch, currentColor 10%, transparent);
+      }
+      .topbar__actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex: 0 0 auto;
+      }
+      @media (max-width: 1024px) {
+        .topbar { gap: 8px; padding: 0 12px; }
+        .topbar__nav { justify-content: flex-start; }
+        .topbar__brand-text { display: none; }
+      }
+    </style>
   </head>
   <body>
 
       <main class="app-shell__main">
-        <header class="navbar" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:62px;">
-          <img src="assets/Logo PNJ.png" alt="Logo PNJ">
-        <div style="margin-left: 80px;">STIO PNJ</div>
-          
-          <div style="flex:1;"></div>
-        
-          
-          <nav class="flex gap-1" style="flex:0 0 auto;">
-            
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Input Pengajuan</a>
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Inbound</a>
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Outbound</a>
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Cek Progress</a>
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Upload Laporan</a>
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Template</a>
-            <a href="#" class="button button--ghost button--neutral whitespace-nowrap">Panduan</a>
+        <header class="topbar" style="height: 70px;">
+
+          <!-- Brand -->
+          <a href="index.php" class="topbar__brand">
+            <img src="assets/Logo%20PNJ.png" alt="Logo PNJ">
+            <span class="topbar__brand-text">STIO PNJ</span>
+          </a>
+
+          <!-- Menu -->
+          <nav class="topbar__nav" aria-label="Menu utama">
+            <?php foreach ($menuNav as $m): ?>
+              <a
+                href="<?= htmlspecialchars($m['href']) ?>"
+                class="button button--ghost button--neutral whitespace-nowrap"
+                <?= ($m['href'] === $halamanSekarang) ? 'aria-current="page"' : '' ?>
+              ><?= htmlspecialchars($m['label']) ?></a>
+            <?php endforeach; ?>
           </nav>
 
-         
-          <div class="flex gap-1 items-center" style="flex:1; justify-content:flex-end;">
+          <!-- Aksi kanan -->
+          <div class="topbar__actions">
 
-           
+            <!-- Notifikasi -->
             <div class="relative">
               <button
                 type="button"
@@ -188,82 +277,44 @@ $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
                   </div>
                 </div>
                 <div class="popover__body">
-                  <a href="#" class="media items-start">
-                    <div class="media__figure mt-1">
-                      <span class="icon-box icon-box--primary"
-                        ><svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="1em"
-                          height="1em"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <g fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path
-                              stroke-linecap="round"
-                              d="m2 3l.265.088c1.32.44 1.98.66 2.357 1.184S5 5.492 5 6.883V9.5c0 2.828 0 4.243.879 5.121c.878.879 2.293.879 5.121.879h8"
-                            />
-                            <path
-                              d="M7.5 18a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3Zm9 0a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3ZM5 6h11.45c2.055 0 3.083 0 3.528.674c.444.675.04 1.619-.77 3.508l-.429 1c-.378.882-.567 1.322-.942 1.57c-.376.248-.856.248-1.815.248H5"
-                            />
-                          </g></svg
-                      ></span>
+                  <?php if (empty($notifikasiPdln)): ?>
+                    <div class="media items-start">
+                      <div class="media__content">
+                        <div class="media__description">Belum ada notifikasi.</div>
+                      </div>
                     </div>
-                    <div class="media__content">
-                      <div class="media__title">New order #10428</div>
-                      <div class="media__description">Acme Corp placed an order for 12 items.</div>
-                      <div class="media__meta">5 minutes ago</div>
-                    </div>
-                  </a>
-                  <a href="#" class="media items-start">
-                    <div class="media__figure mt-1">
-                      <span class="icon-box icon-box--danger"
-                        ><svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="1em"
-                          height="1em"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <g fill="none">
+                  <?php endif; ?>
+                  <?php foreach ($notifikasiPdln as $n): ?>
+                    <a href="#" class="media items-start">
+                      <div class="media__figure mt-1">
+                        <span class="icon-box icon-box--success">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="1em"
+                            height="1em"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
                             <path
-                              stroke="currentColor"
-                              stroke-width="1.5"
-                              d="M5.312 10.762C8.23 5.587 9.689 3 12 3s3.77 2.587 6.688 7.762l.364.644c2.425 4.3 3.638 6.45 2.542 8.022S17.786 21 12.364 21h-.728c-5.422 0-8.134 0-9.23-1.572s.117-3.722 2.542-8.022z"
-                            />
-                            <path
+                              fill="none"
                               stroke="currentColor"
                               stroke-linecap="round"
+                              stroke-linejoin="round"
                               stroke-width="1.5"
-                              d="M12 8v5"
+                              d="m5 13l4 4L19 7"
                             />
-                            <circle cx="12" cy="16" r="1" fill="currentColor" />
-                          </g></svg
-                      ></span>
-                    </div>
-                    <div class="media__content">
-                      <div class="media__title">Low stock alert</div>
-                      <div class="media__description">Headphone Blitz is down to 4 units.</div>
-                      <div class="media__meta">1 hour ago</div>
-                    </div>
-                  </a>
-                  <a href="#" class="media items-start">
-                    <div class="media__figure mt-1">
-                      <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                        <img
-                          class="avatar__image"
-                          src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=facearea&facepad=2.5&w=80&h=80&q=80"
-                          alt=""
-                        />
-                        <span class="avatar__fallback">PP</span>
-                      </span>
-                    </div>
-                    <div class="media__content">
-                      <div class="media__title">Priya Patel</div>
-                      <div class="media__description">Started following your store.</div>
-                      <div class="media__meta">3 hours ago</div>
-                    </div>
-                  </a>
+                          </svg>
+                        </span>
+                      </div>
+                      <div class="media__content">
+                        <div class="media__title">Pengajuan disetujui</div>
+                        <div class="media__description">
+                          Pengajuan PDLN ke <?= htmlspecialchars($n['negara_tujuan']) ?> telah disetujui.
+                        </div>
+                        <div class="media__meta"><?= date('d M Y, H:i', strtotime($n['created_at'])) ?></div>
+                      </div>
+                    </a>
+                  <?php endforeach; ?>
                 </div>
                 <div class="popover__footer">
                   <a href="#" class="button button--block button--outline button--neutral"
@@ -319,14 +370,7 @@ $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
                 aria-controls="topbarUser"
               >
                 <span class="hidden sm:inline font-medium"><?= htmlspecialchars($nama) ?></span>
-                <span class="avatar avatar--sm avatar--circle" data-stisla-avatar>
-                  <img
-                    class="avatar__image"
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&facepad=2.5&w=80&h=80&q=80"
-                    alt=""
-                  />
-                  <span class="avatar__fallback"><?= htmlspecialchars($inisial) ?></span>
-                </span>
+              
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="1em"
@@ -387,7 +431,7 @@ $pengajuanSelesai = $stmtSelesai->fetchAll(PDO::FETCH_ASSOC);
                   >
                 </div>
                 <hr class="menu__separator" role="separator" />
-                <a href="/meridian/login.html" class="menu__item" role="menuitem"
+                <a href="logout.php" class="menu__item" role="menuitem"
                   ><svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="1em"
